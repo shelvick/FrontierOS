@@ -5,6 +5,8 @@
 - `FrontierOS.Sui.BCS` — Pure BCS encoder/decoder for Sui transaction serialization
 - `FrontierOS.Sui.Signer` — Ed25519 signing, verification, Sui address derivation
 - `FrontierOS.Sui.Client` — Behaviour contract for Sui GraphQL access (3 callbacks)
+- `FrontierOS.Sui.TransactionBuilder` — PTB construction, digest, sign+submit (public API)
+- `FrontierOS.Sui.TransactionBuilder.PTB` — BCS encoding for all PTB struct types
 - `FrontierOS.Sui.Types` — Namespace for Sui type structs
 - `FrontierOS.Sui.Types.Parser` — Shared scalar parsers (integer!, bytes!, uid!, status!, optional)
 - `FrontierOS.Sui.Types.TenantItemId` — Tenant-scoped item identifier
@@ -42,6 +44,26 @@
 - `get_objects/2`: Fetch objects by filter (type, owner, cursor, limit)
 - `execute_transaction/3`: Submit signed tx (tx_bytes + signatures)
 
+### TransactionBuilder (transaction_builder.ex)
+- `build!/1`: Keyword opts → BCS-serialized TransactionData binary (raises on invalid)
+- `build/1`: Same as build! but returns `{:ok, binary} | {:error, String.t()}`
+- `digest/1`: BCS bytes → Blake2b-256(<<0,0,0>> <> bytes), 32-byte digest
+- `execute/3`: build + sign + submit via injected client, returns `{:ok, effects} | {:error, reason}`
+
+### TransactionBuilder.PTB (transaction_builder/ptb.ex)
+- `encode_argument/1`: Argument enum (GasCoin/Input/Result/NestedResult)
+- `encode_call_arg/1`: CallArg enum (Pure/Object with ImmOrOwned/Shared/Receiving)
+- `encode_object_ref/1`: 72-byte fixed tuple (id+version+digest)
+- `encode_gas_data/1`: Payment refs + owner + price + budget
+- `encode_transaction_expiration/1`: None/Epoch enum
+- `encode_type_tag/1`: TypeTag enum (9 primitives via map lookup + Vector + Struct)
+- `encode_struct_tag/1`: StructTag (address+module+name+type_params)
+- `encode_move_call/1`: ProgrammableMoveCall struct
+- `encode_command/1`: Command enum (MoveCall = variant 0)
+- `encode_programmable_transaction/1`: Inputs vector + commands vector
+- `encode_transaction_data_v1/1`: Kind + sender + gas_data + expiration
+- `encode_transaction_data/1`: Outer enum wrapper (V1 = variant 0)
+
 ### Types (types/*.ex)
 - Each struct: `from_json/1` parses Sui GraphQL JSON into typed Elixir struct
 - Parser: `integer!/1` (rejects negatives), `bytes!/1`, `uid!/1`, `status!/1`, `optional/2`
@@ -51,12 +73,15 @@
 - All modules are pure functions (no state, no side effects)
 - Error handling via FunctionClauseError (guards/pattern matching) and ArgumentError (validation)
 - Client uses behaviour + Hammox mock for DI (`config :frontier_os, :sui_client`)
+- TransactionBuilder uses `Application.fetch_env!` for client DI (runtime, not compile_env)
+- PTB uses `@type_tag_indices` map for TypeTag primitive BCS variant lookups (non-sequential indices)
+- Multi-clause public functions use `@doc false` on subsequent clauses (Credo compliance)
 - Types split across files when combined size exceeds 500 lines
 
 ## Dependencies
 
 - Erlang `:crypto` — Ed25519 operations (Signer)
-- `Blake2` — Blake2b-256 hashing (Signer address derivation)
+- `Blake2` — Blake2b-256 hashing (Signer address derivation, TransactionBuilder digest)
 - `Hammox` — Behaviour mock for Client (test only)
 
 ## Specs
@@ -64,4 +89,5 @@
 - SVC_BCS: `noderr/specs/SVC_BCS.md`
 - SVC_Signer: `noderr/specs/SVC_Signer.md`
 - SVC_SuiClient: `noderr/specs/SVC_SuiClient.md`
+- SVC_TransactionBuilder: `noderr/specs/SVC_TransactionBuilder.md`
 - UTIL_SuiTypes: `noderr/specs/UTIL_SuiTypes.md`
