@@ -63,8 +63,8 @@ defmodule Sigil.MixProject do
       {:telemetry_poller, "~> 1.0"},
 
       # Asset build tools
-      {:esbuild, "~> 0.9", only: :dev, runtime: true},
-      {:tailwind, "~> 0.3", only: :dev, runtime: true},
+      {:esbuild, "~> 0.9", runtime: Mix.env() == :dev},
+      {:tailwind, "~> 0.3", runtime: Mix.env() == :dev},
       {:heroicons,
        github: "tailwindlabs/heroicons",
        tag: "v2.1.5",
@@ -75,7 +75,7 @@ defmodule Sigil.MixProject do
 
       # Development
       {:phoenix_live_reload, "~> 1.2", only: :dev},
-      {:phoenix_live_dashboard, "~> 0.8", only: [:dev, :test]},
+      {:phoenix_live_dashboard, "~> 0.8"},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.0", only: [:dev, :test], runtime: false},
